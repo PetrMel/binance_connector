@@ -9,3 +9,4 @@ tokio-tungstenite = "*"
 serde_json = "*"
 eyre = "*"
 tokio = {version = "*", features = ["full"]}
+serde = {version = "*", features = ["derive"]}

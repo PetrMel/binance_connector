@@ -1,33 +1,16 @@
-//https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints
-// {
-//     "lastUpdateId": 1027024,
-//     "bids": [
-//       [
-//         "4.00000000",     // PRICE
-//         "431.00000000"    // QTY
-//       ]
-//     ],
-//     "asks": [
-//       [
-//         "4.00000200",
-//         "12.00000000"
-//       ]
-//     ]
-//   }
+use eyre::Error;
 
+mod http_connector;
+mod json_parser;
 
-// This is using the `tokio` runtime. You'll need the following dependency:
-//
-// `tokio = { version = "1", features = ["full"] }`
-#[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
-    // Some simple CLI args requirements...
-    let body = reqwest::get("https://data-api.binance.vision/api/v3/depth?symbol=BNBBTC&limit=3")
-    .await?
-    .text()
-    .await?;
+pub use crate::http_connector::get_request;
+pub use crate::json_parser::json_parse;
 
+//#[tokio::main]
+fn main() -> Result<(), Error> {
+
+    let body = get_request::get_start_snapshot()?;
     println!("body = {body:?}");
-
+    json_parser::json_parse::parse(&body);
     Ok(())
 }
