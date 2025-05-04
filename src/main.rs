@@ -1,5 +1,3 @@
-use eyre::Error;
-
 mod http_connector;
 mod json_parser;
 mod ws_connector;
@@ -16,24 +14,31 @@ pub struct PriceLevels {
     asks: std::collections::BTreeMap<String, String>
 }
 
+use std::io::{stdout, Write};
 
-fn main() -> Result<(), Error> {
-
-    //let price_levels : PriceLevels;
- 
-    let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";
+fn main()  {
     trpl::run(async {
-        let ws_connection = ws_connector_impl::Connection::make_connection_to(&ws_url).await;
-    });
+
+        //let price_levels : PriceLevels;
     
-    // tokio::task::spawn_blocking(|| {
-    //     ws_connection.get_message();
-    // });
+        let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";   
+        let ws_connection = ws_connector_impl::Connection::make_connection_to(&ws_url).await.unwrap();
 
-    // let body = get_request::get_start_snapshot()?;
-    // println!("body = {body:?}");
-    // json_parser::json_parse::parse(&body);
- 
+        let message = ws_connection.get_message().await;
+        let data = message.into_data();
+        stdout().write(&data).unwrap();
+        stdout().flush().unwrap();
+        
+        //     let jopa = self.stream.next().await;
 
-    Ok(())
+        //     let jopa1 = jopa.unwrap().unwrap();
+        //     stdout().write(&jopa1.into_data());
+        //     stdout().flush();
+        // }
+    
+
+        // let body = get_request::get_start_snapshot()?;
+        // println!("body = {body:?}");
+        // json_parser::json_parse::parse(&body);
+    });
 }

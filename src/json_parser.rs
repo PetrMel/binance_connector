@@ -41,7 +41,7 @@ use serde_json::Result;
 //     a: Vec<(String, String)>
 // }
 
-pub fn parse(data: &String) -> Result<()> {
+pub fn parse(data: &str) -> Result<()> {
    // let p: PriceLevels = serde_json::from_str(data)?;
     println!("{data}");
     Ok(())
