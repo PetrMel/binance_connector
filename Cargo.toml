@@ -5,8 +5,10 @@ edition = "2024"
 
 [dependencies]
 reqwest = "*"
-tokio-tungstenite = "*"
+tokio-tungstenite = { version = "*", features = ["native-tls"] }
 serde_json = "*"
 eyre = "*"
 tokio = {version = "*", features = ["full"]}
 serde = {version = "*", features = ["derive"]}
+tungstenite = "0.26.2"
+futures-util = "0.3.31"

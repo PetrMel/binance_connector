@@ -1,7 +1,7 @@
 pub mod json_parse {
 
 
-use serde::{Deserialize, Serialize};
+
 use serde_json::Result;
 
 
@@ -21,16 +21,29 @@ use serde_json::Result;
 //       ]
 //     ]
 //}
-#[derive(serde::Deserialize)]
-struct PriceLevels {
-    lastUpdateId: i64,
-    bids: Vec<(String, String)>,
-    asks: Vec<(String, String)>
-}
+
+
+// #[derive(serde::Deserialize)]
+// pub struct PriceLevelsSnapshot {
+//     lastUpdateId: i64,
+//     bids: Vec<(String, String)>,
+//     asks: Vec<(String, String)>
+// }
+
+// #[derive(serde::Deserialize)]
+// struct PriceLevelsIncremental {
+//     e: String,
+//     E: i64,
+//     s: String,
+//     U: String,
+//     u: String,
+//     b: Vec<(String, String)>,
+//     a: Vec<(String, String)>
+// }
 
 pub fn parse(data: &String) -> Result<()> {
-    let p: PriceLevels = serde_json::from_str(data)?;
-
+   // let p: PriceLevels = serde_json::from_str(data)?;
+    println!("{data}");
     Ok(())
 }
 }
