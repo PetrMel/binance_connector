@@ -17,17 +17,18 @@ pub struct PriceLevels {
 }
 
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+fn main() -> Result<(), Error> {
 
     //let price_levels : PriceLevels;
  
     let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";
-    let ws_connection = ws_connector_impl::Connection::make_connection_to(&ws_url).unwrap();
-    
-    tokio::task::spawn_blocking(|| {
-        ws_connection.get_message();
+    trpl::run(async {
+        let ws_connection = ws_connector_impl::Connection::make_connection_to(&ws_url).await;
     });
+    
+    // tokio::task::spawn_blocking(|| {
+    //     ws_connection.get_message();
+    // });
 
     // let body = get_request::get_start_snapshot()?;
     // println!("body = {body:?}");
