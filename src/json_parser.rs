@@ -51,6 +51,7 @@ pub struct PriceLevelsSnapshot {
 //     ]
 //   }
 #[derive(serde::Deserialize)]
+#[derive(Debug)]
 pub struct PriceLevelsIncremental {
     e: String,
     E: i64,
@@ -62,13 +63,13 @@ pub struct PriceLevelsIncremental {
 }
 
 pub fn parse_incremental(data: &str) -> Result<PriceLevelsIncremental> {
-   let parsed: PriceLevelsIncremental = serde_json::from_str(data).unwrap();
-    Ok(parsed)
+   let parsed  = serde_json::from_str(data);
+    return parsed;
 }
 
 pub fn parse_snapshot(data: &str) -> Result<PriceLevelsSnapshot> {
-    let parsed: PriceLevelsSnapshot = serde_json::from_str(data).unwrap();
-     Ok(parsed)
+    let parsed  = serde_json::from_str(data);
+     return parsed;
  }
 
 

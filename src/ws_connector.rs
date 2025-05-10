@@ -32,22 +32,16 @@ impl Connection {
 
 
 
-    pub async fn get_message(mut self) -> Message {
-        let message = self.stream.next().await;
-        let message = message.unwrap().unwrap();
+    pub async fn get_message(&mut self) -> Option<Result<Message, tungstenite::Error>> {
+        let message: Option<Result<Message, tungstenite::Error>> = self.stream.next().await;
         message
     }
 
-    pub async fn get_messages(self)  {
-        // let read_future = self.stream.for_each(|message| async {
-        //     let data = message.unwrap().into_data();
-        //     tokio::io::stdout().write(&data).await.unwrap();
-        //     tokio::io::stdout().write(b"\n").await.unwrap();
-        //     tokio::io::stdout().flush().await.unwrap();
-        // });
+    // pub async fn get_messages(self) -> tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>> {
+    //     let ret: tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>> = self.stream;
 
-        // read_future.await;
-    }
+    //     return ret;
+    // }
 
     
 }

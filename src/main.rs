@@ -19,12 +19,13 @@ pub struct PriceLevels {
 impl PriceLevels {
 
     fn update_from_incremental (&mut self, inc_upd: json_helper::PriceLevelsIncremental) {
+        println!("{inc_upd:?}");
         if (inc_upd.u < self.last_update_id) {
             // Nothing to do
             return;
         }
 
-        if (inc_upd.U > self.last_update_id) {
+        if (inc_upd.U > self.last_update_id+1) {
             !panic!("Something went wrong");
         }
 
@@ -80,11 +81,12 @@ fn main()  {
 
 
         let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";   
-        let ws_connection = ws_connector_impl::Connection::make_connection_to(&ws_url).await.unwrap();
+        let mut ws_connection = ws_connector_impl::Connection::make_connection_to(&ws_url).await.unwrap();
 
         let message = ws_connection.get_message().await;
-      //  let data = message.into_data();
-        let first_incremental = json_helper::parse_incremental(message.to_text().unwrap()).unwrap();
+
+        let mes = message.unwrap().unwrap();
+        let first_incremental = json_helper::parse_incremental(mes.to_text().unwrap()).unwrap();
         let first_increment_id: i64 = first_incremental.U;
 
         let snapshot = get_first_snapshot(first_increment_id).await;
@@ -98,11 +100,19 @@ fn main()  {
 
         println!("{price_levels:?}");
 
-        // let fut1 = async {
-            
-        // };
+        let fut1 = async move {
+            while let Some(message) = ws_connection.get_message().await {
+                let mes = message.unwrap();
+                let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
+                match inc_update {
+                    Ok(inc_update) => price_levels.update_from_incremental(inc_update),
+                    Err(_) => (),
+                                    };
+                println!("{price_levels:?}");
+            }
+        };
 
-
+        trpl::spawn_task(fut1).await;
 
 
         //     let jopa = self.stream.next().await;
