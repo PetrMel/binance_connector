@@ -19,14 +19,16 @@ pub struct PriceLevels {
 impl PriceLevels {
 
     fn update_from_incremental (&mut self, inc_upd: json_helper::PriceLevelsIncremental) {
-        println!("{inc_upd:?}");
+
         if (inc_upd.u < self.last_update_id) {
             // Nothing to do
             return;
         }
+        let id: thread::ThreadId = thread::current().id();
+        println!("{id:?} : {inc_upd:?}");
 
         if (inc_upd.U > self.last_update_id+1) {
-            !panic!("Something went wrong");
+            panic!("Something went wrong");
         }
 
         self.last_update_id = inc_upd.u;
@@ -43,14 +45,6 @@ impl PriceLevels {
             self.asks.insert(ask.0, ask.1);
         }
 
-        // for (bid in inc_upd.b) {
-        //     if bid[1] == 0 {
-        //         self.bids.remove(bid[0]);
-        //         continue;
-        //     }
-
-        //     self.bids.insert(ask[0], ask[1]);
-        // }
 
     }
 
@@ -58,7 +52,7 @@ impl PriceLevels {
 }
 
 
-use std::{collections::BTreeMap, io::{stdout, Write}};
+use std::{collections::BTreeMap, io::Write, sync::Arc, thread};
 
 async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
     for i in 1..6 {
@@ -71,8 +65,7 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
             return snapshot;
         }
     }
-    !panic!();
-
+    panic!()
 }
 
 
@@ -81,7 +74,7 @@ fn main()  {
 
 
         let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";   
-        let mut ws_connection = ws_connector_impl::Connection::make_connection_to(&ws_url).await.unwrap();
+        let mut ws_connection = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
 
         let message = ws_connection.get_message().await;
 
@@ -92,39 +85,60 @@ fn main()  {
         let snapshot = get_first_snapshot(first_increment_id).await;
         let bids1 = BTreeMap::from_iter(snapshot.bids);
         let asks1 = BTreeMap::from_iter(snapshot.asks);
-        let mut price_levels : PriceLevels  = PriceLevels{last_update_id: snapshot.lastUpdateId, bids: bids1, asks : asks1  };
+
+
+        let mut price_levels : PriceLevels  = PriceLevels{last_update_id: snapshot.lastUpdateId, bids: bids1, asks : asks1};
         
+        
+
         println!("{price_levels:?}");
 
         price_levels.update_from_incremental(first_incremental);
 
+        
         println!("{price_levels:?}");
+        let mtx_local = std::sync::Arc::new(std::sync::Mutex::new(price_levels));
+
+        let counter1 = Arc::clone(&mtx_local);
+
 
         let fut1 = async move {
             while let Some(message) = ws_connection.get_message().await {
                 let mes = message.unwrap();
                 let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
                 match inc_update {
-                    Ok(inc_update) => price_levels.update_from_incremental(inc_update),
+                    Ok(inc_update) => {
+                        let mut price_levels_ = mtx_local.lock().unwrap();
+                        price_levels_.update_from_incremental(inc_update);
+                        println!("{price_levels_:?}");
+                    },
                     Err(_) => (),
                                     };
-                println!("{price_levels:?}");
             }
         };
 
-        trpl::spawn_task(fut1).await;
+        let fut2 = async move {
+            let mut ws_connection_local = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
+            while let Some(message) = ws_connection_local.get_message().await {
+                let mes = message.unwrap();
+                let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
+                match inc_update {
+                    Ok(inc_update) => {
+                        let mut price_levels_ = counter1.lock().unwrap();
+                        price_levels_.update_from_incremental(inc_update);
+                        println!("{price_levels_:?}");
+                    },
+                    Err(_) => (),
+                                    };
+            }
+        };
+
+        let fut11 = trpl::spawn_task(fut1);
+
+        let fut22 = trpl::spawn_task(fut2);
 
 
-        //     let jopa = self.stream.next().await;
+        trpl::join(fut11,fut22).await;
 
-        //     let jopa1 = jopa.unwrap().unwrap();
-        //     stdout().write(&jopa1.into_data());
-        //     stdout().flush();
-        // }
-    
-
-        // let body = get_request::get_start_snapshot()?;
-        // println!("body = {body:?}");
-        // json_parser::json_parse::parse(&body);
     });
 }
