@@ -45,6 +45,17 @@ impl PriceLevels {
             self.asks.insert(ask.0, ask.1);
         }
 
+        for bid in inc_upd.b {
+            let parsed: f32 = bid.1.parse().unwrap();
+            //TODO comp double with 0
+            if parsed == 0.0 {
+                self.bids.remove(bid.0.to_string().as_str());
+                continue;
+            }
+
+            self.bids.insert(bid.0, bid.1);
+        }
+
 
     }
 
@@ -68,11 +79,13 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
     panic!()
 }
 
-
 fn main()  {
-    trpl::run(async {
-
-
+    tokio::runtime::Builder::new_current_thread()
+    .enable_all()
+    .build()
+    .unwrap()
+    .block_on(async {
+      
         let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";   
         let mut ws_connection = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
 
@@ -133,12 +146,10 @@ fn main()  {
             }
         };
 
-        let fut11 = trpl::spawn_task(fut1);
+        let fut11 = tokio::spawn(fut1);
+        let fut22 = tokio::spawn(fut2);
 
-        let fut22 = trpl::spawn_task(fut2);
-
-
-        trpl::join(fut11,fut22).await;
+        tokio::join!(fut11,fut22);
 
     });
 }

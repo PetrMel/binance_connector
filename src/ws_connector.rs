@@ -37,12 +37,6 @@ impl Connection {
         message
     }
 
-    // pub async fn get_messages(self) -> tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>> {
-    //     let ret: tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>> = self.stream;
-
-    //     return ret;
-    // }
-
     
 }
 
