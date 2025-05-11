@@ -18,14 +18,14 @@ pub struct PriceLevels {
 
 impl PriceLevels {
 
-    fn update_from_incremental (&mut self, inc_upd: json_helper::PriceLevelsIncremental) {
-
+    fn update_from_incremental (&mut self, inc_upd: json_helper::PriceLevelsIncremental, conn_num: i8) {
+        println!("{conn_num:?} : {inc_upd:?}");
         if (inc_upd.u < self.last_update_id) {
             // Nothing to do
             return;
         }
-        let id: thread::ThreadId = thread::current().id();
-        println!("{id:?} : {inc_upd:?}");
+ 
+        println!("in: {conn_num:?} : {inc_upd:?}");
 
         if (inc_upd.U > self.last_update_id+1) {
             panic!("Something went wrong");
@@ -106,7 +106,7 @@ fn main()  {
 
         println!("{price_levels:?}");
 
-        price_levels.update_from_incremental(first_incremental);
+        price_levels.update_from_incremental(first_incremental, 1);
 
         
         println!("{price_levels:?}");
@@ -122,7 +122,7 @@ fn main()  {
                 match inc_update {
                     Ok(inc_update) => {
                         let mut price_levels_ = mtx_local.lock().unwrap();
-                        price_levels_.update_from_incremental(inc_update);
+                        price_levels_.update_from_incremental(inc_update, 1);
                         println!("{price_levels_:?}");
                     },
                     Err(_) => (),
@@ -138,7 +138,7 @@ fn main()  {
                 match inc_update {
                     Ok(inc_update) => {
                         let mut price_levels_ = counter1.lock().unwrap();
-                        price_levels_.update_from_incremental(inc_update);
+                        price_levels_.update_from_incremental(inc_update, 2);
                         println!("{price_levels_:?}");
                     },
                     Err(_) => (),
