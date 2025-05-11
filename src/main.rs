@@ -8,7 +8,7 @@ pub use json_parser::json_helper;
 use json_parser::json_helper::PriceLevelsSnapshot;
 pub use ws_connector::ws_connector_impl;
 
-
+#[derive(serde::Serialize)]
 #[derive(Debug)]
 pub struct PriceLevels {
     last_update_id: i64,
@@ -59,6 +59,11 @@ impl PriceLevels {
 
     }
 
+    fn as_json_text(&mut self) -> String {
+        //TODO make only slice of 100 for bids and aska in here
+        let json_text = serde_json::to_string(self).unwrap();
+        return json_text;
+    }
 
 }
 
@@ -80,7 +85,7 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
 }
 
 fn main()  {
-    tokio::runtime::Builder::new_current_thread()
+    tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
     .unwrap()
@@ -110,9 +115,10 @@ fn main()  {
 
         
         println!("{price_levels:?}");
-        let mtx_local = std::sync::Arc::new(std::sync::Mutex::new(price_levels));
-
-        let counter1 = Arc::clone(&mtx_local);
+        let counter1 = std::sync::Arc::new(std::sync::Mutex::new(price_levels));
+        let counter2 = Arc::clone(&counter1);
+        let counter3 = Arc::clone(&counter1);
+        let counter4 = Arc::clone(&counter1);
 
 
         let fut1 = async move {
@@ -121,7 +127,7 @@ fn main()  {
                 let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
                 match inc_update {
                     Ok(inc_update) => {
-                        let mut price_levels_ = mtx_local.lock().unwrap();
+                        let mut price_levels_ = counter1.lock().unwrap();
                         price_levels_.update_from_incremental(inc_update, 1);
                         println!("{price_levels_:?}");
                     },
@@ -137,7 +143,7 @@ fn main()  {
                 let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
                 match inc_update {
                     Ok(inc_update) => {
-                        let mut price_levels_ = counter1.lock().unwrap();
+                        let mut price_levels_ = counter2.lock().unwrap();
                         price_levels_.update_from_incremental(inc_update, 2);
                         println!("{price_levels_:?}");
                     },
@@ -146,10 +152,41 @@ fn main()  {
             }
         };
 
-        let fut11 = tokio::spawn(fut1);
-        let fut22 = tokio::spawn(fut2);
+        let fut3 = async move {
+            let mut ws_connection_local = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
+            while let Some(message) = ws_connection_local.get_message().await {
+                let mes = message.unwrap();
+                let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
+                match inc_update {
+                    Ok(inc_update) => {
+                        let mut price_levels_ = counter3.lock().unwrap();
+                        price_levels_.update_from_incremental(inc_update, 3);
+                        println!("{price_levels_:?}");
+                    },
+                    Err(_) => (),
+                                    };
+            }
+        };
 
-        tokio::join!(fut11,fut22);
+        let fut4 = async move {
+                loop {
+                    {
+                        let mut price_levels_ = counter4.lock().unwrap();
+                        let json_text = price_levels_.as_json_text();
+                        println!("{}", json_text);
+                    }
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                }
+        };
+
+
+
+        let handle1 = tokio::spawn(fut1);
+        let handle2 = tokio::spawn(fut2);
+        let handle3 = tokio::spawn(fut3);
+        let handle4 = tokio::spawn(fut4);
+
+        tokio::join!(handle1, handle2, handle3, handle4);
 
     });
 }
