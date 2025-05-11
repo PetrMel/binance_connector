@@ -10,11 +10,6 @@ use json_parser::json_helper::PriceLevelsSnapshot;
 pub use ws_connector::ws_connector_impl;
 pub use price_levels_engine::price_levels_engine::PriceLevels;
 
-
-
-
-use std::{collections::BTreeMap, sync::Arc};
-
 async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
     for i in 1..6 {
         print!("attempt {i}");
@@ -41,20 +36,14 @@ fn main()  {
         let mut ws_connection = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
 
         let message = ws_connection.get_message().await;
-
         let mes = message.unwrap().unwrap();
         let first_incremental = json_helper::parse_incremental(mes.to_text().unwrap()).unwrap();
         let first_increment_id: i64 = first_incremental.U;
 
         let snapshot = get_first_snapshot(first_increment_id).await;
-        let bids1 = BTreeMap::from_iter(snapshot.bids);
-        let asks1 = BTreeMap::from_iter(snapshot.asks);
-
-
-        let mut price_levels : PriceLevels  = PriceLevels{last_update_id: snapshot.lastUpdateId, bids: bids1, asks : asks1};
         
+        let mut price_levels = PriceLevels::make_init_price_levels_from_snapshot(snapshot);
         
-
         println!("{price_levels:?}");
 
         price_levels.update_from_incremental(first_incremental, 1);
@@ -62,9 +51,9 @@ fn main()  {
         
         println!("{price_levels:?}");
         let counter1 = std::sync::Arc::new(std::sync::Mutex::new(price_levels));
-        let counter2 = Arc::clone(&counter1);
-        let counter3 = Arc::clone(&counter1);
-        let counter4 = Arc::clone(&counter1);
+        let counter2 = std::sync::Arc::clone(&counter1);
+        let counter3 = std::sync::Arc::clone(&counter1);
+        let counter4 = std::sync::Arc::clone(&counter1);
 
 
         let fut1 = async move {

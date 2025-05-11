@@ -1,15 +1,24 @@
 pub mod price_levels_engine {
+    use crate::json_helper::PriceLevelsSnapshot;
+
     
 
 #[derive(serde::Serialize)]
 #[derive(Debug)]
 pub struct PriceLevels {
-    pub last_update_id: i64,
-    pub bids: std::collections::BTreeMap<String, String>,
-    pub asks: std::collections::BTreeMap<String, String>
+    last_update_id: i64,
+    bids: std::collections::BTreeMap<String, String>,
+    asks: std::collections::BTreeMap<String, String>
 }
 
 impl PriceLevels {
+
+    pub fn make_init_price_levels_from_snapshot(snapshot: PriceLevelsSnapshot) -> Self {
+        let bids_local = std::collections::BTreeMap::from_iter(snapshot.bids);
+        let asks_local = std::collections::BTreeMap::from_iter(snapshot.asks);
+        
+        Self { last_update_id: snapshot.lastUpdateId, bids: bids_local, asks: asks_local}
+    }
 
     fn update_one_side_from_vec(side: &mut std::collections::BTreeMap<String, String>, from: &Vec<(String, String)>) {
         for elem in from {
@@ -40,8 +49,8 @@ impl PriceLevels {
         self.last_update_id = inc_upd.u;
         
         //TODO make closure
-        Self::update_one_side_from_vec(&mut self.asks, &inc_upd.a);
         Self::update_one_side_from_vec(&mut self.bids, &inc_upd.b);
+        Self::update_one_side_from_vec(&mut self.asks, &inc_upd.a);
     }
 
     pub fn as_json_text(&mut self) -> String {
