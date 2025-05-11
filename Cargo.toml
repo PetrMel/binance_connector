@@ -9,6 +9,5 @@ tokio-tungstenite = { version = "*", features = ["native-tls"] }
 serde_json = "*"
 eyre = "*"
 serde = {version = "*", features = ["derive"]}
-tungstenite = "0.26.2"
 futures-util = "0.3.31"
 tokio = { version = "1.44.2", features = ["macros", "net", "rt-multi-thread"] }

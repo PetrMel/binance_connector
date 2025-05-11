@@ -20,14 +20,14 @@ impl PriceLevels {
 
     fn update_from_incremental (&mut self, inc_upd: json_helper::PriceLevelsIncremental, conn_num: i8) {
         println!("{conn_num:?} : {inc_upd:?}");
-        if (inc_upd.u < self.last_update_id) {
+        if inc_upd.u < self.last_update_id {
             // Nothing to do
             return;
         }
  
         println!("in: {conn_num:?} : {inc_upd:?}");
 
-        if (inc_upd.U > self.last_update_id+1) {
+        if inc_upd.U > self.last_update_id+1 {
             panic!("Something went wrong");
         }
 
@@ -60,7 +60,7 @@ impl PriceLevels {
     }
 
     fn as_json_text(&mut self) -> String {
-        //TODO make only slice of 100 for bids and aska in here
+        //TODO make only slice of 100 for bids and asks in here
         let json_text = serde_json::to_string(self).unwrap();
         return json_text;
     }
@@ -68,7 +68,7 @@ impl PriceLevels {
 }
 
 
-use std::{collections::BTreeMap, io::Write, sync::Arc, thread};
+use std::{collections::BTreeMap, sync::Arc};
 
 async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
     for i in 1..6 {
@@ -77,7 +77,7 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
         let snapshot = json_helper::parse_snapshot(&snapshot_string).unwrap();
         let snapshot_id = snapshot.lastUpdateId;
 
-        if (snapshot_id >= first_increment_id) {
+        if snapshot_id >= first_increment_id {
             return snapshot;
         }
     }
@@ -186,7 +186,8 @@ fn main()  {
         let handle3 = tokio::spawn(fut3);
         let handle4 = tokio::spawn(fut4);
 
-        tokio::join!(handle1, handle2, handle3, handle4);
+        let res = tokio::join!(handle1, handle2, handle3, handle4);
+        res.0.unwrap();
 
     });
 }

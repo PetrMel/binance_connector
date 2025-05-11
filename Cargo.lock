@@ -1184,7 +1184,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-tungstenite",
- "tungstenite",
 ]
 
 [[package]]

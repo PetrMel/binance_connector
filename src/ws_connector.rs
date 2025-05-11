@@ -3,7 +3,6 @@ pub mod ws_connector_impl {
 use futures_util::StreamExt;
 use reqwest::StatusCode;
 use tokio_tungstenite::connect_async;
-use tungstenite::{client::IntoClientRequest, Message};
 
 use tokio_tungstenite::MaybeTlsStream;
 use tokio::net::TcpStream;
@@ -16,7 +15,7 @@ pub struct Connection {
 
 impl Connection {
     pub async fn make_connection_to(url : &str) -> Result<Connection, eyre::Error> {
-        let request = url.into_client_request().unwrap();
+        let request = tokio_tungstenite::tungstenite::client::IntoClientRequest::into_client_request(url).unwrap();
         
         let (stream_local, response) = connect_async(request).await.unwrap();
 
@@ -32,8 +31,8 @@ impl Connection {
 
 
 
-    pub async fn get_message(&mut self) -> Option<Result<Message, tungstenite::Error>> {
-        let message: Option<Result<Message, tungstenite::Error>> = self.stream.next().await;
+    pub async fn get_message(&mut self) -> Option<Result<tokio_tungstenite::tungstenite::Message, tokio_tungstenite::tungstenite::Error>> {
+        let message = self.stream.next().await;
         message
     }
 
