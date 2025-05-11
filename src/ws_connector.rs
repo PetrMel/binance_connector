@@ -36,6 +36,11 @@ impl Connection {
         message
     }
 
+    pub async fn close(&mut self) -> Result<(), tokio_tungstenite::tungstenite::Error>{
+        let res = self.stream.close(None).await;
+        return res;
+    }
+
     
 }
 

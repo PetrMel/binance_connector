@@ -25,6 +25,30 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
     panic!()
 }
 
+async fn task_for_loop(ws_connection: Option<ws_connector_impl::Connection>, price_levels_shared: std::sync::Arc<std::sync::Mutex<PriceLevels>>, ws_url: &str, conn_num: i8) {
+    let mut local_connection = match ws_connection {
+        Some(ws_connection) => ws_connection,
+        None =>  ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap()
+    };
+
+    loop {
+        while let Some(message) = local_connection.get_message().await {
+            let mes = message.unwrap();
+            let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
+            match inc_update {
+                Ok(inc_update) => {
+                    let mut price_levels_ = price_levels_shared.lock().unwrap();
+                    price_levels_.update_from_incremental(inc_update, conn_num).unwrap();
+                    println!("{price_levels_:?}");
+                },
+            //Sometimes they sent just one int, so assume it is normal and just skip
+            Err(_) => (),
+            };
+        }   
+    }
+}
+
+
 fn main()  {
     tokio::runtime::Builder::new_multi_thread()
     .enable_all()
@@ -46,7 +70,7 @@ fn main()  {
         
         println!("{price_levels:?}");
 
-        price_levels.update_from_incremental(first_incremental, 1);
+        price_levels.update_from_incremental(first_incremental, 1).unwrap();
 
         
         println!("{price_levels:?}");
@@ -57,50 +81,15 @@ fn main()  {
 
 
         let fut1 = async move {
-            while let Some(message) = ws_connection.get_message().await {
-                let mes = message.unwrap();
-                let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
-                match inc_update {
-                    Ok(inc_update) => {
-                        let mut price_levels_ = counter1.lock().unwrap();
-                        price_levels_.update_from_incremental(inc_update, 1);
-                        println!("{price_levels_:?}");
-                    },
-                    Err(_) => (),
-                                    };
-            }
+            task_for_loop(Some(ws_connection), counter1, ws_url, 1).await;
         };
 
         let fut2 = async move {
-            let mut ws_connection_local = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
-            while let Some(message) = ws_connection_local.get_message().await {
-                let mes = message.unwrap();
-                let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
-                match inc_update {
-                    Ok(inc_update) => {
-                        let mut price_levels_ = counter2.lock().unwrap();
-                        price_levels_.update_from_incremental(inc_update, 2);
-                        println!("{price_levels_:?}");
-                    },
-                    Err(_) => (),
-                                    };
-            }
+            task_for_loop(None, counter2, ws_url, 2).await;
         };
 
         let fut3 = async move {
-            let mut ws_connection_local = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
-            while let Some(message) = ws_connection_local.get_message().await {
-                let mes = message.unwrap();
-                let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
-                match inc_update {
-                    Ok(inc_update) => {
-                        let mut price_levels_ = counter3.lock().unwrap();
-                        price_levels_.update_from_incremental(inc_update, 3);
-                        println!("{price_levels_:?}");
-                    },
-                    Err(_) => (),
-                                    };
-            }
+            task_for_loop(None, counter3, ws_url, 3).await;
         };
 
         let fut4 = async move {

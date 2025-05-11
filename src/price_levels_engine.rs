@@ -33,28 +33,30 @@ impl PriceLevels {
         }
     }
 
-    pub fn update_from_incremental (&mut self, inc_upd: crate::json_helper::PriceLevelsIncremental, conn_num: i8) {
+    pub fn update_from_incremental (&mut self, inc_upd: crate::json_helper::PriceLevelsIncremental, conn_num: i8) -> Result<(), eyre::Error> {
         println!("{conn_num:?} : {inc_upd:?}");
         if inc_upd.u < self.last_update_id {
-            // Nothing to do
-            return;
+            // Nothing to do, return to skip
+            return Ok(());
         }
  
         println!("in: {conn_num:?} : {inc_upd:?}");
 
         if inc_upd.U > self.last_update_id+1 {
-            panic!("Something went wrong");
+            //TODO: return error and reconnect current connection
+            return Err(eyre::eyre!("Something went wrong"));
         }
 
         self.last_update_id = inc_upd.u;
         
-        //TODO make closure
         Self::update_one_side_from_vec(&mut self.bids, &inc_upd.b);
         Self::update_one_side_from_vec(&mut self.asks, &inc_upd.a);
+
+        Ok(())
     }
 
     pub fn as_json_text(&mut self) -> String {
-        //TODO make only slice of 100 for bids and asks in here
+        //TODO: make only slice of 100 for bids and asks in here
         let json_text = serde_json::to_string(self).unwrap();
         return json_text;
     }
