@@ -34,16 +34,15 @@ impl PriceLevels {
     }
 
     pub fn update_from_incremental (&mut self, inc_upd: crate::json_helper::PriceLevelsIncremental, conn_num: i8) -> Result<(), eyre::Error> {
-        println!("{conn_num:?} : {inc_upd:?}");
+        //for check println!("{conn_num:?} : {inc_upd:?}");
         if inc_upd.u < self.last_update_id {
             // Nothing to do, return to skip
             return Ok(());
         }
  
-        println!("in: {conn_num:?} : {inc_upd:?}");
+        //for check println!("in: {conn_num:?} : {inc_upd:?}");
 
         if inc_upd.U > self.last_update_id+1 {
-            //TODO: return error and reconnect current connection
             return Err(eyre::eyre!("Something went wrong"));
         }
 

@@ -26,23 +26,28 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
 }
 
 async fn task_for_loop(ws_connection: Option<ws_connector_impl::Connection>, price_levels_shared: std::sync::Arc<std::sync::Mutex<PriceLevels>>, ws_url: &str, conn_num: i8) {
-    let mut local_connection = match ws_connection {
+    let local_connection = match ws_connection {
         Some(ws_connection) => ws_connection,
         None =>  ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap()
     };
 
+    let mut local_connection_boxed = Box::new(local_connection); 
+
     loop {
-        while let Some(message) = local_connection.get_message().await {
+        while let Some(message) = local_connection_boxed.get_message().await {
             let mes = message.unwrap();
             let inc_update = json_helper::parse_incremental(mes.to_text().unwrap());
             match inc_update {
                 Ok(inc_update) => {
                     let mut price_levels_ = price_levels_shared.lock().unwrap();
-                    price_levels_.update_from_incremental(inc_update, conn_num).unwrap();
-                    println!("{price_levels_:?}");
+                    let res = price_levels_.update_from_incremental(inc_update, conn_num);
+                    match res {
+                        Ok(()) => (), // for check: println!("{price_levels_:?}"),
+                        Err(_) => ()//TODO reconnect (Somethin went wrong)
+                    }
                 },
-            //Sometimes they sent just one int, so assume it is normal and just skip
-            Err(_) => (),
+                //Sometimes they sent just one int, so assume it is normal and just skip
+                Err(_) => (),
             };
         }   
     }

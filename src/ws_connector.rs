@@ -22,7 +22,7 @@ impl Connection {
         let status_code = response.status();
         match status_code {
             StatusCode::SWITCHING_PROTOCOLS => println!("ws_connected"),
-            _ => panic!("expected response 101, but code is: {status_code}"),
+            _ => println!("expected response 101, but code is: {status_code}"),
         }
 
 
@@ -36,10 +36,6 @@ impl Connection {
         message
     }
 
-    pub async fn close(&mut self) -> Result<(), tokio_tungstenite::tungstenite::Error>{
-        let res = self.stream.close(None).await;
-        return res;
-    }
 
     
 }
