@@ -1,71 +1,16 @@
 mod http_connector;
 mod json_parser;
 mod ws_connector;
+mod price_levels_engine;
 
 pub use http_connector::get_request;
 use http_connector::get_request::get_start_snapshot_from;
 pub use json_parser::json_helper;
 use json_parser::json_helper::PriceLevelsSnapshot;
 pub use ws_connector::ws_connector_impl;
-
-#[derive(serde::Serialize)]
-#[derive(Debug)]
-pub struct PriceLevels {
-    last_update_id: i64,
-    bids: std::collections::BTreeMap<String, String>,
-    asks: std::collections::BTreeMap<String, String>
-}
-
-impl PriceLevels {
-
-    fn update_from_incremental (&mut self, inc_upd: json_helper::PriceLevelsIncremental, conn_num: i8) {
-        println!("{conn_num:?} : {inc_upd:?}");
-        if inc_upd.u < self.last_update_id {
-            // Nothing to do
-            return;
-        }
- 
-        println!("in: {conn_num:?} : {inc_upd:?}");
-
-        if inc_upd.U > self.last_update_id+1 {
-            panic!("Something went wrong");
-        }
-
-        self.last_update_id = inc_upd.u;
-        
-        //TODO make closure
-        for ask in inc_upd.a {
-            let parsed: f32 = ask.1.parse().unwrap();
-            //TODO comp double with 0
-            if parsed == 0.0 {
-                self.asks.remove(ask.0.to_string().as_str());
-                continue;
-            }
-
-            self.asks.insert(ask.0, ask.1);
-        }
-
-        for bid in inc_upd.b {
-            let parsed: f32 = bid.1.parse().unwrap();
-            //TODO comp double with 0
-            if parsed == 0.0 {
-                self.bids.remove(bid.0.to_string().as_str());
-                continue;
-            }
-
-            self.bids.insert(bid.0, bid.1);
-        }
+pub use price_levels_engine::price_levels_engine::PriceLevels;
 
 
-    }
-
-    fn as_json_text(&mut self) -> String {
-        //TODO make only slice of 100 for bids and asks in here
-        let json_text = serde_json::to_string(self).unwrap();
-        return json_text;
-    }
-
-}
 
 
 use std::{collections::BTreeMap, sync::Arc};
@@ -81,6 +26,7 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
             return snapshot;
         }
     }
+    // We couldn't take first snapshot. We hardexit assuming there is nothing to do at all
     panic!()
 }
 
@@ -90,7 +36,7 @@ fn main()  {
     .build()
     .unwrap()
     .block_on(async {
-      
+        
         let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";   
         let mut ws_connection = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
 
