@@ -13,7 +13,8 @@ pub use price_levels_engine::price_levels_engine::PriceLevels;
 async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
     for i in 1..6 {
         print!("attempt {i}");
-        let snapshot_string = get_start_snapshot_from("https://data-api.binance.vision/api/v3/depth?symbol=BNBBTC&limit=100").await.unwrap();
+        // We need to get 5000, if we get only 100 then it's possible to reduce count of levels at the beginning (if our_levels qty just come as 0.0000000)
+        let snapshot_string = get_start_snapshot_from("https://data-api.binance.vision/api/v3/depth?symbol=BNBBTC&limit=5000").await.unwrap();
         let snapshot = json_helper::parse_snapshot(&snapshot_string).unwrap();
         let snapshot_id = snapshot.lastUpdateId;
 
