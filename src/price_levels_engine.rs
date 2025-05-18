@@ -44,12 +44,16 @@ impl PriceLevels {
     }
 
     pub fn update_from_incremental (&mut self, inc_upd: crate::json_helper::PriceLevelsIncremental, conn_num: i8) -> Result<(), eyre::Error> {
-        if inc_upd.u < self.last_update_id {
+        // TODO make synchro for last_update_id and return immediately, now other connections wait for parser here
+        // for check
+        //println!("{conn_num:?} : {inc_upd:?}");
+        if inc_upd.u <= self.last_update_id {
             // Nothing to do, return to skip
             return Ok(());
         }
 
-
+        // for check
+        //println!("in: {conn_num:?} : {inc_upd:?}");
         if inc_upd.U > self.last_update_id+1 {
             return Err(eyre::eyre!("Something went wrong"));
         }
@@ -60,7 +64,7 @@ impl PriceLevels {
         Self::update_one_side_from_vec(&mut self.asks.levels, &inc_upd.a);
 
         // for check (it is easier to compare with snapshot on browser)
-        // println!("{}", self.as_json_text());
+        //println!("{}", self.as_json_text());
         Ok(())
     }
 
