@@ -1,14 +1,24 @@
 pub mod price_levels_engine {
+    use serde::ser::{SerializeSeq, SerializeStruct};
+
     use crate::json_helper::PriceLevelsSnapshot;
 
-    
+#[derive(Debug)]
+struct Bids {
+    levels: std::collections::BTreeMap<String, String>
+}
 
-#[derive(serde::Serialize)]
+#[derive(Debug)]
+struct Asks {
+    levels: std::collections::BTreeMap<String, String>
+}
+
+//#[derive(serde::Serialize)]
 #[derive(Debug)]
 pub struct PriceLevels {
     last_update_id: i64,
-    bids: std::collections::BTreeMap<String, String>,
-    asks: std::collections::BTreeMap<String, String>
+    bids: Bids,
+    asks: Asks
 }
 
 impl PriceLevels {
@@ -17,7 +27,7 @@ impl PriceLevels {
         let bids_local = std::collections::BTreeMap::from_iter(snapshot.bids);
         let asks_local = std::collections::BTreeMap::from_iter(snapshot.asks);
         
-        Self { last_update_id: snapshot.lastUpdateId, bids: bids_local, asks: asks_local}
+        Self { last_update_id: snapshot.lastUpdateId, bids: Bids { levels: bids_local }, asks: Asks { levels: asks_local }}
     }
 
     fn update_one_side_from_vec(side: &mut std::collections::BTreeMap<String, String>, from: &Vec<(String, String)>) {
@@ -48,18 +58,71 @@ impl PriceLevels {
 
         self.last_update_id = inc_upd.u;
         
-        Self::update_one_side_from_vec(&mut self.bids, &inc_upd.b);
-        Self::update_one_side_from_vec(&mut self.asks, &inc_upd.a);
+        Self::update_one_side_from_vec(&mut self.bids.levels, &inc_upd.b);
+        Self::update_one_side_from_vec(&mut self.asks.levels, &inc_upd.a);
 
         Ok(())
     }
 
     pub fn as_json_text(&mut self) -> String {
-        //TODO: make only slice of 100 for bids and asks in here
         let json_text = serde_json::to_string(self).unwrap();
         return json_text;
     }
+    
 
+
+}
+
+impl serde::Serialize for PriceLevels {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // 3 is the number of fields in the struct.
+        let mut state = serializer.serialize_struct("PriceLevels", 3)?;
+        state.serialize_field( "lastUpdateId", &self.last_update_id)?;
+        state.serialize_field("bids", &self.bids)?;
+        state.serialize_field("asks", &self.asks)?;
+        state.end()
+    }
+}
+
+impl serde::Serialize for Bids
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let size = usize::max(self.levels.len(), 100);
+        let mut seq = serializer.serialize_seq(Some(size))?;
+        let rev_iter = self.levels.iter().rev().enumerate();
+        for elem in  rev_iter {
+            seq.serialize_element(&elem.1)?;
+            if elem.0 == 100-1 {
+                break;
+            }
+        }
+        seq.end()
+    }
+}
+
+impl serde::Serialize for Asks
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let size = usize::max(self.levels.len(), 100);
+        let mut seq = serializer.serialize_seq(Some(size))?;
+        let iter = self.levels.iter().enumerate();
+        for elem in  iter {
+            seq.serialize_element(&elem.1)?;
+            if elem.0 == 100-1 {
+                break;
+            }
+        }
+        seq.end()
+    }
 }
 
 }
