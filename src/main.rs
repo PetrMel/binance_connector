@@ -26,10 +26,10 @@ async fn get_first_snapshot(first_increment_id : i64) -> PriceLevelsSnapshot {
     panic!()
 }
 
-async fn task_for_loop(ws_connection: Option<ws_connector_impl::Connection>, price_levels_shared: std::sync::Arc<std::sync::Mutex<PriceLevels>>, ws_url: &str, conn_num: i8) {
+async fn task_for_loop(ws_connection: Option<ws_connector_impl::Connection>, price_levels_shared: std::sync::Arc<std::sync::Mutex<PriceLevels>>, ws_url: &str, no_delay: bool, conn_num: i8) {
     let local_connection = match ws_connection {
         Some(ws_connection) => ws_connection,
-        None =>  ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap()
+        None =>  ws_connector_impl::Connection::make_connection_to(ws_url, no_delay).await.unwrap()
     };
 
     let mut local_connection_boxed = Box::new(local_connection); 
@@ -63,7 +63,7 @@ fn main()  {
     .block_on(async {
         
         let ws_url = "wss://stream.binance.com:9443/ws/bnbbtc@depth@100ms";   
-        let mut ws_connection = ws_connector_impl::Connection::make_connection_to(ws_url).await.unwrap();
+        let mut ws_connection = ws_connector_impl::Connection::make_connection_to(ws_url, false).await.unwrap();
 
         let message = ws_connection.get_message().await;
         let mes = message.unwrap().unwrap();
@@ -87,15 +87,16 @@ fn main()  {
 
 
         let fut1 = async move {
-            task_for_loop(Some(ws_connection), counter1, ws_url, 1).await;
+            task_for_loop(Some(ws_connection), counter1, ws_url, false, 1).await;
         };
 
         let fut2 = async move {
-            task_for_loop(None, counter2, ws_url, 2).await;
+            // We set no_delay in one of connection (may be we are close to server)
+            task_for_loop(None, counter2, ws_url, true, 2).await;
         };
 
         let fut3 = async move {
-            task_for_loop(None, counter3, ws_url, 3).await;
+            task_for_loop(None, counter3, ws_url, false, 3).await;
         };
 
         let fut4 = async move {
